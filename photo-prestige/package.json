@@ -6,6 +6,8 @@
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
     "test": "jest --runInBand",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "generate:openapi": "node ./scripts/generate-openapi.js"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "morgan": "^1.10.1"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
     "jest": "^30.2.0",
     "supertest": "^7.1.4"
   }
