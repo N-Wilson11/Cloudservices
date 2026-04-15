@@ -1,0 +1,207 @@
+services:
+  photo-prestige:
+    build:
+      context: ./photo-prestige
+    depends_on:
+      - auth-service
+      - target-service
+      - register-service
+      - score-service
+      - read-service
+      - rabbitmq
+      - mail-service
+    expose:
+      - "${GATEWAY_PORT:-3000}"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${GATEWAY_PORT:-3000}
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_PORT:-3001}
+      - TARGET_SERVICE_URL=http://target-service:${TARGET_SERVICE_PORT:-3002}
+      - REGISTER_SERVICE_URL=http://register-service:${REGISTER_SERVICE_PORT:-3003}
+      - SCORE_SERVICE_URL=http://score-service:${SCORE_SERVICE_PORT:-3005}
+      - CLOCK_SERVICE_URL=http://clock-service:${CLOCK_SERVICE_PORT:-3004}
+      - READ_SERVICE_URL=http://read-service:${READ_SERVICE_PORT:-3007}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-photo-prestige}
+      - RABBITMQ_RECONNECT_DELAY_MS=${RABBITMQ_RECONNECT_DELAY_MS:-5000}
+      - GATEWAY_PROXY_TIMEOUT_MS=${GATEWAY_PROXY_TIMEOUT_MS:-5000}
+      - GATEWAY_RETRY_ATTEMPTS=${GATEWAY_RETRY_ATTEMPTS:-3}
+      - GATEWAY_RETRY_DELAY_MS=${GATEWAY_RETRY_DELAY_MS:-250}
+      - GATEWAY_CIRCUIT_BREAKER_THRESHOLD=${GATEWAY_CIRCUIT_BREAKER_THRESHOLD:-3}
+      - GATEWAY_CIRCUIT_BREAKER_RESET_TIMEOUT_MS=${GATEWAY_CIRCUIT_BREAKER_RESET_TIMEOUT_MS:-10000}
+      - MAIL_SERVICE_URL=http://mail-service:${MAIL_SERVICE_PORT:-3006}
+
+  gateway-lb:
+    image: nginx:1.27-alpine
+    depends_on:
+      - photo-prestige
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    volumes:
+      - ./nginx/gateway-lb.conf:/etc/nginx/conf.d/default.conf:ro
+
+  read-service:
+    build:
+      context: ./read-service
+    depends_on:
+      - target-service
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${READ_SERVICE_PORT:-3007}
+      - TARGET_SERVICE_URL=http://target-service:${TARGET_SERVICE_PORT:-3002}
+
+  auth-service:
+    build:
+      context: ./auth-service
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${AUTH_SERVICE_PORT:-3001}
+      - MONGODB_URI=${AUTH_MONGODB_URI:-mongodb://mongodb:27017/photo-prestige}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-real-deployments}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1d}
+
+  target-service:
+    build:
+      context: ./target-service
+    depends_on:
+      - mongodb
+      - rabbitmq
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${TARGET_SERVICE_PORT:-3002}
+      - MONGODB_URI=${TARGET_MONGODB_URI:-mongodb://mongodb:27017/photo-prestige}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-real-deployments}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-photo-prestige}
+      - RABBITMQ_RECONNECT_DELAY_MS=${RABBITMQ_RECONNECT_DELAY_MS:-5000}
+
+  register-service:
+    build:
+      context: ./register-service
+    depends_on:
+      - register-mongodb
+      - rabbitmq
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${REGISTER_SERVICE_PORT:-3003}
+      - MONGODB_URI=${REGISTER_MONGODB_URI:-mongodb://register-mongodb:27017/register-service}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-real-deployments}
+      - TARGET_SERVICE_URL=http://target-service:${TARGET_SERVICE_PORT:-3002}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-photo-prestige}
+      - RABBITMQ_RECONNECT_DELAY_MS=${RABBITMQ_RECONNECT_DELAY_MS:-5000}
+
+  score-service:
+    build:
+      context: ./score-service
+    depends_on:
+      - score-mongodb
+      - target-service
+      - rabbitmq
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${SCORE_SERVICE_PORT:-3005}
+      - MONGODB_URI=${SCORE_MONGODB_URI:-mongodb://score-mongodb:27017/score-service}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-real-deployments}
+      - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_PORT:-3001}
+      - REGISTER_SERVICE_URL=http://register-service:${REGISTER_SERVICE_PORT:-3003}
+      - TARGET_SERVICE_URL=http://target-service:${TARGET_SERVICE_PORT:-3002}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-photo-prestige}
+      - RABBITMQ_RECONNECT_DELAY_MS=${RABBITMQ_RECONNECT_DELAY_MS:-5000}
+      - IMAGGA_API_KEY=${IMAGGA_API_KEY:-}
+      - IMAGGA_API_SECRET=${IMAGGA_API_SECRET:-}
+      - IMAGGA_API_BASE_URL=${IMAGGA_API_BASE_URL:-https://api.imagga.com/v2}
+
+  clock-service:
+    build:
+      context: ./clock-service
+    depends_on:
+      - clock-mongodb
+      - rabbitmq
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${CLOCK_SERVICE_PORT:-3004}
+      - MONGODB_URI=${CLOCK_MONGODB_URI:-mongodb://clock-mongodb:27017/clock-service}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - RABBITMQ_EXCHANGE=${RABBITMQ_EXCHANGE:-photo-prestige}
+      - RABBITMQ_RECONNECT_DELAY_MS=${RABBITMQ_RECONNECT_DELAY_MS:-5000}
+      - DEADLINE_REMINDER_MINUTES=${DEADLINE_REMINDER_MINUTES:-60}
+      - DEADLINE_REMINDER_INTERVAL_MINUTES=${DEADLINE_REMINDER_INTERVAL_MINUTES:-60}
+      - CLOCK_POLL_INTERVAL_MS=${CLOCK_POLL_INTERVAL_MS:-5000}
+
+  mail-service:
+    build:
+      context: ./mail-service
+    depends_on:
+      - mail-mongodb
+      - rabbitmq
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${MAIL_SERVICE_PORT:-3006}
+      - MAIL_MONGODB_URI=${MAIL_MONGODB_URI:-mongodb://mail-mongodb:27017/mail-service}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-real-deployments}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - MAIL_FROM=${MAIL_FROM:-Photo Prestige <noreply@example.com>}
+
+  mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=photo-prestige
+    volumes:
+      - mongodb_data:/data/db
+
+  register-mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=register-service
+    volumes:
+      - register_mongodb_data:/data/db
+
+  score-mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=score-service
+    volumes:
+      - score_mongodb_data:/data/db
+
+  clock-mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=clock-service
+    volumes:
+      - clock_mongodb_data:/data/db
+
+  mail-mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_DATABASE=mail-service
+    volumes:
+      - mail_mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb_data:
+  register_mongodb_data:
+  score_mongodb_data:
+  clock_mongodb_data:
+  mail_mongodb_data:
+  rabbitmq_data:

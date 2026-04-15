@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('photo-prestige:server');
+var http = require('http');
+var logger = require('../utils/logger');
+var rabbitmq = require('../utils/rabbitmq');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+function subscribeToTargetCreated() {
+  rabbitmq.subscribe(
+    'photo-service.target-created.v1',
+    'target.created.v1',
+    async function(message) {
+      logger.info('rabbitmq.received', {
+        queue: 'photo-service.target-created.v1',
+        routingKey: 'target.created.v1',
+        targetId: message.targetId
+      });
+    }
+  ).then(function() {
+    logger.info('rabbitmq.subscribed', {
+      queue: 'photo-service.target-created.v1',
+      routingKey: 'target.created.v1'
+    });
+  }).catch(function(error) {
+    logger.error('rabbitmq.subscribe_failed', {
+      message: error.message
+    });
+
+    setTimeout(subscribeToTargetCreated, 5000);
+  });
+}
+
+rabbitmq.connect().catch(function() {
+  // reconnect is handled in utils/rabbitmq
+});
+
+subscribeToTargetCreated();
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      logger.error('server.start_failed', {
+        message: bind + ' requires elevated privileges'
+      });
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      logger.error('server.start_failed', {
+        message: bind + ' is already in use'
+      });
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  logger.info('server.started', {
+    port: typeof addr === 'string' ? addr : addr.port
+  });
+  debug('Listening on ' + bind);
+}
+
+function shutdown() {
+  logger.info('server.stopping');
+  server.close(function() {
+    rabbitmq.close().then(function() {
+      logger.info('server.stopped');
+      process.exit(0);
+    }).catch(function(error) {
+      logger.error('rabbitmq.close_failed', { message: error.message });
+      process.exit(1);
+    });
+  });
+}

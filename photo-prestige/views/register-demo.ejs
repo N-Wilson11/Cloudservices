@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/auth-demo">Auth</a>
+        <a class="nav-link active-link" href="/register-demo">Register</a>
+        <a class="nav-link" href="/score-demo">Score</a>
+        <a class="nav-link" href="/target-demo">Target</a>
+        <a class="nav-link" href="/read-demo">Read</a>
+        <a class="nav-link" href="/clock-demo">Clock</a>
+        <a class="nav-link" href="/mail-demo">Mail</a>
+        <a class="nav-link" href="/api-docs">API Docs</a>
+      </nav>
+
+      <section class="hero">
+        <h1><%= title %></h1>
+      </section>
+
+      <section class="card">
+        <h2>Test Inputs</h2>
+        <form id="register-service-form">
+          <label for="target-id">Target ID</label>
+          <input id="target-id" name="targetId" type="text" placeholder="target-123" required />
+
+          <label for="manual-token">JWT Token</label>
+          <textarea id="manual-token" name="token" rows="5" placeholder="Laat leeg om localStorage token te gebruiken"></textarea>
+        </form>
+        <p class="helper-text">Als het tokenveld leeg is, gebruikt deze pagina automatisch `demo_jwt_token` uit localStorage.</p>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <h2>Health</h2>
+          <button id="register-health-button" type="button">Check register health</button>
+          <pre id="register-health-result">Nog niet getest.</pre>
+        </section>
+
+        <section class="card" data-role-required="participant">
+          <h2>Create Registration</h2>
+          <button id="create-registration-button" type="button">Create registration</button>
+          <pre id="create-registration-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card" data-role-required="participant">
+          <h2>My Registrations</h2>
+          <button id="my-registrations-button" type="button">Load my registrations</button>
+          <pre id="my-registrations-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card" data-role-required="target-owner">
+          <h2>Participants</h2>
+          <button id="participants-button" type="button">Load participants</button>
+          <pre id="participants-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card" data-role-required="participant">
+          <h2>Delete My Registration</h2>
+          <button id="delete-registration-button" type="button">Delete registration</button>
+          <pre id="delete-registration-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Current Token</h2>
+          <button id="refresh-token-button" type="button">Refresh token view</button>
+          <pre id="current-token-result">Nog geen token gevonden.</pre>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      function showJson(elementId, payload) {
+        document.getElementById(elementId).textContent = JSON.stringify(payload, null, 2);
+      }
+
+      function getToken() {
+        const manualToken = document.getElementById('manual-token').value.trim();
+        return manualToken || localStorage.getItem('demo_jwt_token') || '';
+      }
+
+      function parseJwtPayload(token) {
+        try {
+          var parts = String(token || '').split('.');
+
+          if (parts.length < 2) {
+            return null;
+          }
+
+          var normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          var padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+          return JSON.parse(atob(padded));
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function getCurrentRole() {
+        var payload = parseJwtPayload(getToken());
+        return payload && payload.role ? payload.role : null;
+      }
+
+      function applyRoleVisibility() {
+        var role = getCurrentRole();
+        var restricted = document.querySelectorAll('[data-role-required]');
+
+        restricted.forEach(function(element) {
+          var required = String(element.getAttribute('data-role-required') || '')
+            .split(',')
+            .map(function(value) { return value.trim(); })
+            .filter(Boolean);
+
+          var allowed = role && required.indexOf(role) !== -1;
+          element.style.display = allowed ? '' : 'none';
+        });
+      }
+
+      function getTargetId() {
+        return document.getElementById('target-id').value.trim();
+      }
+
+      function updateTokenView() {
+        const token = getToken();
+        if (!token) {
+          document.getElementById('current-token-result').textContent = 'Nog geen token gevonden.';
+          applyRoleVisibility();
+          return;
+        }
+
+        showJson('current-token-result', { token });
+        applyRoleVisibility();
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+
+        try {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: JSON.parse(text)
+          };
+        } catch (error) {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: text
+          };
+        }
+      }
+
+      function buildAuthHeaders() {
+        const token = getToken();
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+
+        if (token) {
+          headers.Authorization = 'Bearer ' + token;
+        }
+
+        return headers;
+      }
+
+      document.getElementById('register-health-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/register/health', { method: 'GET' });
+          showJson('register-health-result', result);
+        } catch (error) {
+          showJson('register-health-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('create-registration-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(getTargetId()) + '/registrations', {
+            method: 'POST',
+            headers: buildAuthHeaders()
+          });
+          showJson('create-registration-result', result);
+        } catch (error) {
+          showJson('create-registration-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('my-registrations-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/me/registrations', {
+            method: 'GET',
+            headers: buildAuthHeaders()
+          });
+          showJson('my-registrations-result', result);
+        } catch (error) {
+          showJson('my-registrations-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('participants-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(getTargetId()) + '/participants', {
+            method: 'GET',
+            headers: buildAuthHeaders()
+          });
+          showJson('participants-result', result);
+        } catch (error) {
+          showJson('participants-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('delete-registration-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(getTargetId()) + '/registrations/me', {
+            method: 'DELETE',
+            headers: buildAuthHeaders()
+          });
+          showJson('delete-registration-result', result);
+        } catch (error) {
+          showJson('delete-registration-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('refresh-token-button').addEventListener('click', updateTokenView);
+      document.getElementById('manual-token').addEventListener('input', applyRoleVisibility);
+
+      updateTokenView();
+      applyRoleVisibility();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/auth-demo">Auth</a>
+        <a class="nav-link" href="/register-demo">Register</a>
+        <a class="nav-link" href="/score-demo">Score</a>
+        <a class="nav-link active-link" href="/target-demo">Target</a>
+        <a class="nav-link" href="/read-demo">Read</a>
+        <a class="nav-link" href="/clock-demo">Clock</a>
+        <a class="nav-link" href="/mail-demo">Mail</a>
+        <a class="nav-link" href="/api-docs">API Docs</a>
+      </nav>
+
+      <section class="hero">
+        <h1><%= title %></h1>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Stored Token</h2>
+          <button id="clear-token-button" type="button">Clear token</button>
+        </div>
+        <pre id="token-result">Nog geen token gevonden.</pre>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <h2>Health</h2>
+          <button id="target-health-button" type="button">Check target health</button>
+          <pre id="target-health-result">Nog niet getest.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Targets lijst</h2>
+          <form id="targets-list-form">
+            <label for="list-city">Filter op stad (optioneel)</label>
+            <input id="list-city" name="city" type="text" placeholder="Den Bosch" />
+
+            <button type="submit">Haal targets op</button>
+          </form>
+          <pre id="targets-list-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card" data-role-required="target-owner">
+          <h2>Maak target aan</h2>
+          <form id="target-create-form">
+            <label for="target-title">Titel</label>
+            <input id="target-title" name="title" type="text" placeholder="Bellende engel" required />
+
+            <label for="target-image-url">Image URL</label>
+            <input id="target-image-url" name="imageUrl" type="url" placeholder="https://..." required />
+
+            <label for="target-city">Stad</label>
+            <input id="target-city" name="city" type="text" placeholder="Den Bosch" />
+
+            <label for="target-location-description">Location description</label>
+            <input
+              id="target-location-description"
+              name="locationDescription"
+              type="text"
+              placeholder="Bij het standbeeld op het plein"
+            />
+
+            <label for="target-lat">Latitude</label>
+            <input id="target-lat" name="lat" type="number" step="any" placeholder="51.6889" required />
+
+            <label for="target-lng">Longitude</label>
+            <input id="target-lng" name="lng" type="number" step="any" placeholder="5.3036" required />
+
+            <label for="target-radius">Radius (meters)</label>
+            <input id="target-radius" name="radiusMeters" type="number" min="1" value="250" required />
+
+            <label for="target-deadline">Deadline</label>
+            <input id="target-deadline" name="deadlineAt" type="datetime-local" required />
+
+            <button type="submit">Target aanmaken</button>
+          </form>
+          <pre id="target-create-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Target detail</h2>
+          <form id="target-detail-form">
+            <label for="target-detail-id">Target ID</label>
+            <input id="target-detail-id" name="targetId" type="text" placeholder="Mongo ObjectId" required />
+
+            <button id="target-get-button" type="submit">Detail ophalen</button>
+          </form>
+          <pre id="target-detail-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Thumbs up/down</h2>
+          <form id="target-vote-form">
+            <label for="target-vote-id">Target ID</label>
+            <input id="target-vote-id" name="targetId" type="text" placeholder="Mongo ObjectId" required />
+
+            <div class="button-row">
+              <button id="target-votes-button" type="button">Votes ophalen</button>
+              <button id="target-vote-up-button" type="button" data-role-required="participant">Thumbs up</button>
+              <button id="target-vote-down-button" type="button" data-role-required="participant">Thumbs down</button>
+            </div>
+          </form>
+          <pre id="target-vote-result">Nog geen request verstuurd.</pre>
+        </section>
+
+        <section class="card" data-role-required="target-owner">
+          <h2>Target verwijderen</h2>
+          <form id="target-delete-form">
+            <label for="target-delete-id">Target ID</label>
+            <input id="target-delete-id" name="targetId" type="text" placeholder="Mongo ObjectId" required />
+
+            <button id="target-delete-button" type="button">Verwijderen</button>
+          </form>
+          <pre id="target-delete-result">Nog geen request verstuurd.</pre>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      function showJson(elementId, payload) {
+        document.getElementById(elementId).textContent = JSON.stringify(payload, null, 2);
+      }
+
+      function getToken() {
+        return localStorage.getItem('demo_jwt_token') || '';
+      }
+
+      function parseJwtPayload(token) {
+        try {
+          var parts = String(token || '').split('.');
+
+          if (parts.length < 2) {
+            return null;
+          }
+
+          var normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          var padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+          return JSON.parse(atob(padded));
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function getCurrentRole() {
+        var payload = parseJwtPayload(getToken());
+        return payload && payload.role ? payload.role : null;
+      }
+
+      function applyRoleVisibility() {
+        var role = getCurrentRole();
+        var restricted = document.querySelectorAll('[data-role-required]');
+
+        restricted.forEach(function(element) {
+          var required = String(element.getAttribute('data-role-required') || '')
+            .split(',')
+            .map(function(value) { return value.trim(); })
+            .filter(Boolean);
+
+          var allowed = role && required.indexOf(role) !== -1;
+          element.style.display = allowed ? '' : 'none';
+        });
+      }
+
+      function updateTokenView() {
+        const token = getToken();
+        if (!token) {
+          document.getElementById('token-result').textContent = 'Nog geen token gevonden. Login eerst op de Auth pagina.';
+          applyRoleVisibility();
+          return;
+        }
+        showJson('token-result', { token });
+        applyRoleVisibility();
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+
+        try {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: JSON.parse(text)
+          };
+        } catch (error) {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: text
+          };
+        }
+      }
+
+      function buildAuthHeaders() {
+        const token = getToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers.Authorization = 'Bearer ' + token;
+        }
+        return headers;
+      }
+
+      document.getElementById('clear-token-button').addEventListener('click', function() {
+        localStorage.removeItem('demo_jwt_token');
+        updateTokenView();
+      });
+
+      document.getElementById('target-health-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/targets/health', { method: 'GET' });
+          showJson('target-health-result', result);
+        } catch (error) {
+          showJson('target-health-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('targets-list-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const city = String(formData.get('city') || '').trim();
+        const query = city ? '?city=' + encodeURIComponent(city) : '';
+
+        try {
+          const result = await requestJson('/api/v1/targets' + query, { method: 'GET' });
+          showJson('targets-list-result', result);
+        } catch (error) {
+          showJson('targets-list-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('target-create-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const deadlineInput = String(formData.get('deadlineAt') || '');
+        const deadlineAt = deadlineInput ? new Date(deadlineInput).toISOString() : null;
+
+        const payload = {
+          title: formData.get('title'),
+          imageUrl: formData.get('imageUrl'),
+          city: formData.get('city'),
+          locationDescription: formData.get('locationDescription'),
+          lat: Number(formData.get('lat')),
+          lng: Number(formData.get('lng')),
+          radiusMeters: Number(formData.get('radiusMeters')),
+          deadlineAt: deadlineAt
+        };
+
+        try {
+          const result = await requestJson('/api/v1/targets', {
+            method: 'POST',
+            headers: buildAuthHeaders(),
+            body: JSON.stringify(payload)
+          });
+          showJson('target-create-result', result);
+        } catch (error) {
+          showJson('target-create-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('target-detail-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const targetId = String(document.getElementById('target-detail-id').value || '').trim();
+        if (!targetId) {
+          showJson('target-detail-result', { message: 'Target ID is verplicht.' });
+          return;
+        }
+
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(targetId), { method: 'GET' });
+          showJson('target-detail-result', result);
+        } catch (error) {
+          showJson('target-detail-result', { error: error.message });
+        }
+      });
+
+      function getVoteTargetId() {
+        return String(document.getElementById('target-vote-id').value || '').trim();
+      }
+
+      async function loadVotes() {
+        const targetId = getVoteTargetId();
+        if (!targetId) {
+          showJson('target-vote-result', { message: 'Vul eerst een Target ID in.' });
+          return;
+        }
+
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(targetId) + '/votes', {
+            method: 'GET'
+          });
+          showJson('target-vote-result', result);
+        } catch (error) {
+          showJson('target-vote-result', { error: error.message });
+        }
+      }
+
+      async function saveVote(vote) {
+        const targetId = getVoteTargetId();
+        if (!targetId) {
+          showJson('target-vote-result', { message: 'Vul eerst een Target ID in.' });
+          return;
+        }
+
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(targetId) + '/vote', {
+            method: 'POST',
+            headers: buildAuthHeaders(),
+            body: JSON.stringify({ vote: vote })
+          });
+          showJson('target-vote-result', result);
+        } catch (error) {
+          showJson('target-vote-result', { error: error.message });
+        }
+      }
+
+      document.getElementById('target-votes-button').addEventListener('click', loadVotes);
+      document.getElementById('target-vote-up-button').addEventListener('click', function() {
+        saveVote('up');
+      });
+      document.getElementById('target-vote-down-button').addEventListener('click', function() {
+        saveVote('down');
+      });
+
+      document.getElementById('target-delete-button').addEventListener('click', async function() {
+        const targetId = String(document.getElementById('target-delete-id').value || '').trim();
+        if (!targetId) {
+          showJson('target-delete-result', { message: 'Vul eerst een Target ID in.' });
+          return;
+        }
+
+        try {
+          const result = await requestJson('/api/v1/targets/' + encodeURIComponent(targetId), {
+            method: 'DELETE',
+            headers: buildAuthHeaders()
+          });
+          showJson('target-delete-result', result);
+        } catch (error) {
+          showJson('target-delete-result', { error: error.message });
+        }
+      });
+
+      updateTokenView();
+      applyRoleVisibility();
+    </script>
+  </body>
+</html>

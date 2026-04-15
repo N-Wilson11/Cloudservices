@@ -1,0 +1,1208 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Photo Prestige API Gateway",
+    "version": "1.2.0",
+    "description": "Complete gateway documentation for all available API endpoints.\\n\\nRole model: participant, target-owner.\\n\\nEach operation includes role access in the description and x-allowed-roles."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local gateway"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Gateway"
+    },
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Targets"
+    },
+    {
+      "name": "Register"
+    },
+    {
+      "name": "Score"
+    },
+    {
+      "name": "Read"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "version": {
+            "type": "string",
+            "example": "v1"
+          },
+          "service": {
+            "type": "string",
+            "example": "api-gateway"
+          }
+        }
+      },
+      "AuthPayload": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "participant",
+              "target-owner"
+            ],
+            "description": "Required on register, ignored on login."
+          }
+        }
+      },
+      "TargetCreate": {
+        "type": "object",
+        "required": [
+          "title",
+          "imageUrl",
+          "lat",
+          "lng",
+          "deadlineAt"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "locationDescription": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "radiusMeters": {
+            "type": "number",
+            "example": 250
+          },
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeadlinePatch": {
+        "type": "object",
+        "required": [
+          "deadlineAt"
+        ],
+        "properties": {
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubmissionCreate": {
+        "type": "object",
+        "required": [
+          "imageUrl"
+        ],
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "VotePayload": {
+        "type": "object",
+        "required": [
+          "vote"
+        ],
+        "properties": {
+          "vote": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "Gateway health check",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Gateway is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/health": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Auth service health",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Auth service is healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/register/health": {
+      "get": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "Register service health",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Register service is healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/score/health": {
+      "get": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Score service health",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Score service is healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/read/health": {
+      "get": {
+        "tags": [
+          "Read"
+        ],
+        "summary": "Read service health",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read service is healthy"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register user",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "409": {
+            "description": "User already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login user",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Current user profile",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/users": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "List users",
+        "description": "Allowed roles: target-owner.",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/users/{userId}": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get user by id",
+        "description": "Allowed roles: target-owner or authenticated self.",
+        "x-allowed-roles": [
+          "target-owner",
+          "self"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets": {
+      "get": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "List targets",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "radiusMeters",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Targets list"
+          },
+          "400": {
+            "description": "Invalid query"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Create target",
+        "description": "Allowed roles: target-owner.",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Target created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}": {
+      "get": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Get target by id",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Target details"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Delete target",
+        "description": "Allowed roles: target-owner (must own target).",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Target deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/votes": {
+      "get": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Get target vote summary",
+        "description": "Allowed roles: public.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vote summary"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/vote": {
+      "post": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Vote thumbs up or down on target",
+        "description": "Allowed roles: participant.",
+        "x-allowed-roles": [
+          "participant"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VotePayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vote saved"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/deadline": {
+      "patch": {
+        "tags": [
+          "Targets"
+        ],
+        "summary": "Update target deadline",
+        "description": "Allowed roles: target-owner (must own target).",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeadlinePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deadline updated"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/submissions": {
+      "post": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Create submission",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submission created"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Target not found"
+          },
+          "409": {
+            "description": "Target closed"
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{submissionId}": {
+      "delete": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Delete submission",
+        "description": "Allowed roles: participant, target-owner (must own submission).",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/score": {
+      "get": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Get my best score",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Best score"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "No score found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/scores": {
+      "get": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Get all scores for target",
+        "description": "Allowed roles: target-owner (must own target).",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All scores"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/winner": {
+      "get": {
+        "tags": [
+          "Score"
+        ],
+        "summary": "Get winner for target",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Winner"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Winner not calculated yet"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/registrations": {
+      "post": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "Create registration",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Registration created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Target not found"
+          },
+          "409": {
+            "description": "Registration closed or duplicate"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/participants": {
+      "get": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "List participants for target",
+        "description": "Allowed roles: target-owner (must own target).",
+        "x-allowed-roles": [
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participants list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Target not found"
+          }
+        }
+      }
+    },
+    "/api/v1/me/registrations": {
+      "get": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "List my registrations",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "My registrations"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/read/contests/active": {
+      "get": {
+        "tags": [
+          "Read"
+        ],
+        "summary": "List active contests",
+        "description": "Allowed roles: public. Geeft een leesoverzicht van alle actieve wedstrijden.",
+        "x-allowed-roles": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "radiusMeters",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active contests overview"
+          },
+          "400": {
+            "description": "Invalid query"
+          },
+          "502": {
+            "description": "Upstream service unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{targetId}/registrations/me": {
+      "delete": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "Cancel my registration for target",
+        "description": "Allowed roles: participant, target-owner.",
+        "x-allowed-roles": [
+          "participant",
+          "target-owner"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registration cancelled"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Registration not found"
+          }
+        }
+      }
+    }
+  }
+}

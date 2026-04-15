@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link active-link" href="/">Home</a>
+        <a class="nav-link" href="/auth-demo">Auth</a>
+        <a class="nav-link" href="/register-demo">Register</a>
+        <a class="nav-link" href="/score-demo">Score</a>
+        <a class="nav-link" href="/target-demo">Target</a>
+        <a class="nav-link" href="/read-demo">Read</a>
+        <a class="nav-link" href="/clock-demo">Clock</a>
+        <a class="nav-link" href="/mail-demo">Mail</a>
+        <a class="nav-link" href="/api-docs">API Docs</a>
+      </nav>
+
+      <section class="hero">
+        <h1><%= title %></h1>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Gateway Health</h2>
+          <button id="health-button" type="button">Check health</button>
+        </div>
+        <pre id="health-result">Nog niet getest.</pre>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <h2>Auth</h2>
+          <p>Register, login en JWT opslaan in de browser.</p>
+          <a class="button-link" href="/auth-demo">Open auth page</a>
+        </section>
+
+        <section class="card">
+          <h2>Register</h2>
+          <p>Test register health, create registration, participants en delete.</p>
+          <a class="button-link" href="/register-demo">Open register page</a>
+        </section>
+
+        <section class="card">
+          <h2>Score</h2>
+          <p>Test submissions, mijn score, alle scores en delete submission.</p>
+          <a class="button-link" href="/score-demo">Open score page</a>
+        </section>
+
+        <section class="card">
+          <h2>Target</h2>
+          <p>Targets aanmaken, beheren en als deelnemer inzendingen uploaden.</p>
+          <a class="button-link" href="/target-demo">Open target page</a>
+        </section>
+
+        <section class="card">
+          <h2>Read</h2>
+          <p>Bekijk actieve wedstrijden via de read-service endpoint.</p>
+          <a class="button-link" href="/read-demo">Open read page</a>
+        </section>
+
+        <section class="card">
+          <h2>Clock</h2>
+          <p>Controleer de clock-service en de health status via de gateway.</p>
+          <a class="button-link" href="/clock-demo">Open clock page</a>
+        </section>
+
+        <section class="card">
+          <h2>Mail</h2>
+          <p>Controleer de mail-service en de health status via de gateway.</p>
+          <a class="button-link" href="/mail-demo">Open mail page</a>
+        </section>
+
+        <section class="card">
+          <h2>Swagger Docs</h2>
+          <p>OpenAPI documentatie van alle gateway endpoints.</p>
+          <a class="button-link" href="/api-docs">Open API docs</a>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+        try {
+          return { status: response.status, ok: response.ok, body: JSON.parse(text) };
+        } catch (error) {
+          return { status: response.status, ok: response.ok, body: text };
+        }
+      }
+
+      document.getElementById('health-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/health', { method: 'GET' });
+          document.getElementById('health-result').textContent = JSON.stringify(result, null, 2);
+        } catch (error) {
+          document.getElementById('health-result').textContent = JSON.stringify({ error: error.message }, null, 2);
+        }
+      });
+
+    </script>
+  </body>
+</html>

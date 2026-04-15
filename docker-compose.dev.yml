@@ -1,0 +1,20 @@
+services:
+  mongodb:
+    ports:
+      - "27017:27017"
+
+  register-mongodb:
+    ports:
+      - "27018:27017"
+
+  score-mongodb:
+    ports:
+      - "27019:27017"
+
+  clock-mongodb:
+    ports:
+      - "27020:27017"
+
+  mail-mongodb:
+    ports:
+      - "27021:27017"

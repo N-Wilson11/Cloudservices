@@ -1,0 +1,145 @@
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f7efe4 0%, #f3f6f8 100%);
+  color: #1c1f23;
+  font: 16px "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+}
+
+.top-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.nav-link,
+.button-link {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(28, 31, 35, 0.08);
+  border-radius: 999px;
+  color: #1c1f23;
+  display: inline-flex;
+  font-weight: 700;
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
+.active-link {
+  background: #1e6f5c;
+  color: #fff;
+}
+
+.hero {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #8a5a2b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.intro {
+  max-width: 640px;
+  color: #4e5761;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(28, 31, 35, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(28, 31, 35, 0.08);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.card-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+input,
+textarea,
+select,
+button {
+  border: 1px solid #cfd6dc;
+  border-radius: 10px;
+  font: inherit;
+  padding: 10px 12px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  background: #1e6f5c;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: #185a4b;
+}
+
+.button-link {
+  background: #1e6f5c;
+  border: none;
+  color: #fff;
+}
+
+.button-link:hover {
+  background: #185a4b;
+}
+
+pre {
+  background: #10151b;
+  border-radius: 12px;
+  color: #d8e3ee;
+  font-size: 13px;
+  min-height: 88px;
+  overflow-x: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
+.helper-text {
+  color: #4e5761;
+  font-size: 14px;
+  margin-bottom: 0;
+}

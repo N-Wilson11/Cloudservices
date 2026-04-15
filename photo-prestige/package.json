@@ -1,0 +1,25 @@
+{
+  "name": "photo-prestige",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "dev": "nodemon ./bin/www",
+    "test": "jest --runInBand",
+    "generate:openapi": "node ./scripts/generate-openapi.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "ejs": "^5.0.1",
+    "express": "^4.22.1",
+    "http-proxy-middleware": "^3.0.3",
+    "http-errors": "~1.6.3",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
+  }
+}

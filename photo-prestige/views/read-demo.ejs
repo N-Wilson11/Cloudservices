@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/auth-demo">Auth</a>
+        <a class="nav-link" href="/register-demo">Register</a>
+        <a class="nav-link" href="/score-demo">Score</a>
+        <a class="nav-link" href="/target-demo">Target</a>
+        <a class="nav-link active-link" href="/read-demo">Read</a>
+        <a class="nav-link" href="/clock-demo">Clock</a>
+        <a class="nav-link" href="/mail-demo">Mail</a>
+        <a class="nav-link" href="/api-docs">API Docs</a>
+      </nav>
+
+      <section class="hero">
+        <h1><%= title %></h1>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <h2>Read Health</h2>
+          <button id="read-health-button" type="button">Check read health</button>
+          <pre id="read-health-result">Nog niet getest.</pre>
+        </section>
+
+        <section class="card">
+          <h2>Actieve wedstrijden</h2>
+          <form id="active-contests-form">
+            <label for="read-city">Filter op stad (optioneel)</label>
+            <input id="read-city" name="city" type="text" placeholder="Eindhoven" />
+
+            <label for="read-owner-id">Filter op ownerId (optioneel)</label>
+            <input id="read-owner-id" name="ownerId" type="text" placeholder="user-123" />
+
+            <label for="read-limit">Limit (optioneel)</label>
+            <input id="read-limit" name="limit" type="number" min="1" placeholder="10" />
+
+            <button type="submit">Haal actieve wedstrijden op</button>
+          </form>
+          <pre id="active-contests-result">Nog geen request verstuurd.</pre>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      function showJson(elementId, payload) {
+        document.getElementById(elementId).textContent = JSON.stringify(payload, null, 2);
+      }
+
+      async function requestJson(url, options) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+
+        try {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: JSON.parse(text)
+          };
+        } catch (error) {
+          return {
+            status: response.status,
+            ok: response.ok,
+            body: text
+          };
+        }
+      }
+
+      function toQueryString(values) {
+        const params = new URLSearchParams();
+
+        Object.keys(values).forEach(function(key) {
+          const value = String(values[key] || '').trim();
+          if (value) {
+            params.set(key, value);
+          }
+        });
+
+        const query = params.toString();
+        return query ? '?' + query : '';
+      }
+
+      document.getElementById('read-health-button').addEventListener('click', async function() {
+        try {
+          const result = await requestJson('/api/v1/read/health', { method: 'GET' });
+          showJson('read-health-result', result);
+        } catch (error) {
+          showJson('read-health-result', { error: error.message });
+        }
+      });
+
+      document.getElementById('active-contests-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const query = toQueryString({
+          city: formData.get('city'),
+          ownerId: formData.get('ownerId'),
+          limit: formData.get('limit')
+        });
+
+        try {
+          const result = await requestJson('/api/v1/read/contests/active' + query, { method: 'GET' });
+          showJson('active-contests-result', result);
+        } catch (error) {
+          showJson('active-contests-result', { error: error.message });
+        }
+      });
+    </script>
+  </body>
+</html>
